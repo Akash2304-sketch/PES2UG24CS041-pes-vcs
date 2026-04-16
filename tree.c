@@ -131,42 +131,19 @@ int tree_serialize(const Tree *tree, void **data_out, size_t *len_out) {
 //   - object_write    : save that binary buffer to the store as OBJ_TREE
 //
 // Returns 0 on success, -1 on error.
-int tree_from_index(ObjectID *id_out) {
-    Index idx;
+int has_slash(const char *path) {
+    return strchr(path, '/') != NULL;
+}
 
-    if (index_load(&idx) != 0) {
-        fprintf(stderr, "Failed to load index\n");
-        return -1;
+for (int i = 0; i < idx.count; i++) {
+
+    if (has_slash(idx.entries[i].path)) {
+        continue; // skip directories for now
     }
 
-    Tree tree;
-    tree.count = 0;
+    TreeEntry *e = &tree.entries[tree.count++];
 
-    for (int i = 0; i < idx.count; i++) {
-        TreeEntry *e = &tree.entries[tree.count++];
-
-        e->mode = MODE_FILE;
-
-        // take only filename (ignore path)
-        const char *name = strrchr(idx.entries[i].path, '/');
-        if (name) name++;
-        else name = idx.entries[i].path;
-
-        strcpy(e->name, name);
-
-        e->hash = idx.entries[i].hash;
-    }
-
-    void *data;
-    size_t len;
-
-    if (tree_serialize(&tree, &data, &len) != 0)
-        return -1;
-
-    if (object_write(OBJ_TREE, data, len, id_out) != 0)
-        return -1;
-
-    free(data);
-
-    return 0;
+    e->mode = MODE_FILE;
+    strcpy(e->name, idx.entries[i].path);
+    e->hash = idx.entries[i].hash;
 }
