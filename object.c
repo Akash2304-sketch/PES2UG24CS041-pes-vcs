@@ -93,6 +93,8 @@ int object_exists(const ObjectID *id) {
 
 //
 // Returns 0 on success, -1 on error.
+// object_write updated
+
 int object_write(ObjectType type, const void *data, size_t len, ObjectID *id_out) {
     char header[64];
     const char *type_str;
@@ -102,9 +104,19 @@ int object_write(ObjectType type, const void *data, size_t len, ObjectID *id_out
     else if (type == OBJ_COMMIT) type_str = "commit";
     else return -1;
 
-    snprintf(header, sizeof(header), "%s %zu", type_str, len);
+    int header_len = snprintf(header, sizeof(header), "%s %zu", type_str, len) + 1;
 
-    return -1;
+    size_t total_len = header_len + len;
+    unsigned char *full = malloc(total_len);
+    if (!full) return -1;
+
+    memcpy(full, header, header_len);
+    memcpy(full + header_len, data, len);
+
+    compute_hash(full, total_len, id_out);
+
+    free(full);
+    return 0;
 }
 
 // Read an object from the store.
