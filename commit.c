@@ -196,11 +196,10 @@ int head_update(const ObjectID *new_commit) {
 int commit_create(const char *message, ObjectID *commit_id_out) {
 
     ObjectID tree_id;
+    if (tree_from_index(&tree_id) != 0) return -1;
 
-    if (tree_from_index(&tree_id) != 0) {
-        fprintf(stderr, "Failed to build tree\n");
-        return -1;
-    }
+    ObjectID parent_id;
+    int has_parent = (head_read(&parent_id) == 0);
 
     return 0;
 }
