@@ -138,15 +138,31 @@ int index_load(Index *index) {
     index->count = 0;
 
     FILE *f = fopen(".pes/index", "r");
-    if (!f) {
-        // no index yet → treat as empty
-        return 0;
+    if (!f) return 0;
+
+    while (!feof(f)) {
+        IndexEntry *e = &index->entries[index->count];
+
+        char hash_hex[65];
+
+        if (fscanf(f, "%o %64s %ld %ld %s",
+                   &e->mode,
+                   hash_hex,
+                   &e->mtime_sec,
+                   &e->size,
+                   e->path) != 5) {
+            break;
+        }
+
+        hex_to_hash(hash_hex, &e->hash);
+
+        index->count++;
     }
 
     fclose(f);
     return 0;
 }
-}
+
 
 // Save the index to .pes/index atomically.
 //
