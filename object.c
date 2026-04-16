@@ -97,31 +97,22 @@ int object_exists(const ObjectID *id) {
 
 // (same above + below additions)
 
-char dir[512];
-strncpy(dir, path, sizeof(dir));
-char *slash = strrchr(dir, '/');
-*slash = '\0';
+// (same above + below additions)
 
-mkdir(dir, 0755);
-
-char tmp_path[512];
-snprintf(tmp_path, sizeof(tmp_path), "%s/tmpXXXXXX", dir);
-
-int fd = mkstemp(tmp_path);
-if (fd < 0) {
-    free(full);
-    return -1;
-}
-
-if (write(fd, full, total_len) != (ssize_t)total_len) {
-    close(fd);
+if (rename(tmp_path, path) != 0) {
     unlink(tmp_path);
     free(full);
     return -1;
 }
 
-fsync(fd);
-close(fd);
+int dir_fd = open(dir, O_RDONLY);
+if (dir_fd >= 0) {
+    fsync(dir_fd);
+    close(dir_fd);
+}
+
+free(full);
+return 0;
 
 // Read an object from the store.
 //
