@@ -179,7 +179,7 @@ int compare_index_entries(const void *a, const void *b) {
 }
 
 int index_save(const Index *index) {
-    FILE *f = fopen(".pes/index", "w");
+    FILE *f = fopen(".pes/index.tmp", "w");
     if (!f) return -1;
 
     Index temp = *index;
@@ -197,10 +197,14 @@ int index_save(const Index *index) {
                 temp.entries[i].path);
     }
 
+    fflush(f);
+    fsync(fileno(f));
     fclose(f);
+
+    rename(".pes/index.tmp", ".pes/index");
+
     return 0;
 }
-
 // Stage a file for the next commit.
 //
 // HINTS - Useful functions and syscalls:
