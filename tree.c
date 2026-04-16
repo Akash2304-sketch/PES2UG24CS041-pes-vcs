@@ -139,11 +139,34 @@ int tree_from_index(ObjectID *id_out) {
         return -1;
     }
 
-    // DEBUG: print entries
+    Tree tree;
+    tree.count = 0;
+
     for (int i = 0; i < idx.count; i++) {
-        printf("INDEX: %s\n", idx.entries[i].path);
+        TreeEntry *e = &tree.entries[tree.count++];
+
+        e->mode = MODE_FILE;
+
+        // take only filename (ignore path)
+        const char *name = strrchr(idx.entries[i].path, '/');
+        if (name) name++;
+        else name = idx.entries[i].path;
+
+        strcpy(e->name, name);
+
+        e->hash = idx.entries[i].hash;
     }
 
-    (void)id_out;
+    void *data;
+    size_t len;
+
+    if (tree_serialize(&tree, &data, &len) != 0)
+        return -1;
+
+    if (object_write(OBJ_TREE, data, len, id_out) != 0)
+        return -1;
+
+    free(data);
+
     return 0;
 }
