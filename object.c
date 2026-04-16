@@ -95,37 +95,33 @@ int object_exists(const ObjectID *id) {
 // Returns 0 on success, -1 on error.
 // object_write updated
 
-int object_write(ObjectType type, const void *data, size_t len, ObjectID *id_out) {
-    char header[64];
-    const char *type_str;
+// (same above + below additions)
 
-    if (type == OBJ_BLOB) type_str = "blob";
-    else if (type == OBJ_TREE) type_str = "tree";
-    else if (type == OBJ_COMMIT) type_str = "commit";
-    else return -1;
+char dir[512];
+strncpy(dir, path, sizeof(dir));
+char *slash = strrchr(dir, '/');
+*slash = '\0';
 
-    int header_len = snprintf(header, sizeof(header), "%s %zu", type_str, len) + 1;
+mkdir(dir, 0755);
 
-    size_t total_len = header_len + len;
-    unsigned char *full = malloc(total_len);
-    if (!full) return -1;
+char tmp_path[512];
+snprintf(tmp_path, sizeof(tmp_path), "%s/tmpXXXXXX", dir);
 
-    memcpy(full, header, header_len);
-    memcpy(full + header_len, data, len);
-
-    compute_hash(full, total_len, id_out);
-
-    if (object_exists(id_out)) {
-        free(full);
-        return 0;
-    }
-
-    char path[512];
-    object_path(id_out, path, sizeof(path));
-
+int fd = mkstemp(tmp_path);
+if (fd < 0) {
     free(full);
-    return 0;
+    return -1;
 }
+
+if (write(fd, full, total_len) != (ssize_t)total_len) {
+    close(fd);
+    unlink(tmp_path);
+    free(full);
+    return -1;
+}
+
+fsync(fd);
+close(fd);
 
 // Read an object from the store.
 //
