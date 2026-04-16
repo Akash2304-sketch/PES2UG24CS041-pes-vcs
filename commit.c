@@ -227,5 +227,11 @@ int commit_create(const char *message, ObjectID *commit_id_out) {
     }
 
     free(data);
+
+    if (head_update(commit_id_out) != 0) {
+        fprintf(stderr, "Failed to update HEAD\n");
+        return -1;
+    }
+
     return 0;
 }
