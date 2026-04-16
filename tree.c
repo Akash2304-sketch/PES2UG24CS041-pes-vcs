@@ -131,60 +131,13 @@ int tree_serialize(const Tree *tree, void **data_out, size_t *len_out) {
 //   - object_write    : save that binary buffer to the store as OBJ_TREE
 //
 // Returns 0 on success, -1 on error.
-int write_tree_level(IndexEntry *entries, int count, const char *prefix, ObjectID *out_id) {
-    Tree tree;
-    tree.count = 0;
+int tree_from_index(ObjectID *id_out) {
+    Index idx;
 
-    for (int i = 0; i < count; i++) {
-
-        if (strncmp(entries[i].path, prefix, strlen(prefix)) != 0)
-            continue;
-
-        const char *rest = entries[i].path + strlen(prefix);
-
-        char *slash = strchr(rest, '/');
-
-        if (!slash) {
-            TreeEntry *e = &tree.entries[tree.count++];
-            e->mode = MODE_FILE;
-            strcpy(e->name, rest);
-            e->hash = entries[i].hash;
-        } else {
-            char dirname[256];
-            int len = slash - rest;
-            strncpy(dirname, rest, len);
-            dirname[len] = '\0';
-
-            // avoid duplicates
-            int exists = 0;
-            for (int j = 0; j < tree.count; j++) {
-                if (strcmp(tree.entries[j].name, dirname) == 0) {
-                    exists = 1;
-                    break;
-                }
-            }
-
-            if (!exists) {
-                char new_prefix[512];
-                sprintf(new_prefix, "%s%s/", prefix, dirname);
-
-                ObjectID sub_id;
-                write_tree_level(entries, count, new_prefix, &sub_id);
-
-                TreeEntry *e = &tree.entries[tree.count++];
-                e->mode = MODE_DIR;
-                strcpy(e->name, dirname);
-                e->hash = sub_id;
-            }
-        }
+    if (index_load(&idx) != 0) {
+        fprintf(stderr, "Failed to load index\n");
+        return -1;
     }
 
-    void *data;
-    size_t len;
-
-    tree_serialize(&tree, &data, &len);
-    object_write(OBJ_TREE, data, len, out_id);
-
-    free(data);
-    return 0;
+    return write_tree_level(idx.entries, idx.count, "", id_out);
 }
